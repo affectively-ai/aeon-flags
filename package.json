@@ -1,35 +1,47 @@
 {
   "name": "@affectively/aeon-flags",
-  "version": "1.0.0",
-  "description": "Feature flag and configuration management for the Aeon ecosystem.",
+  "version": "1.0.1",
+  "description": "UCAN-powered Feature Flags with optional Edge Side Inference (ESI) cache and Tier gating. A lightweight alternative to CloudBees and LaunchDarkly.",
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "exports": {
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./esi": {
+      "import": "./dist/esi.js",
+      "types": "./dist/esi.d.ts"
+    },
+    "./react": {
+      "import": "./dist/react.js",
+      "types": "./dist/react.d.ts"
     }
   },
   "scripts": {
     "build": "tsc",
     "dev": "tsc -w",
-    "clean": "rm -rf dist"
+    "test": "bun test --coverage"
   },
-  "dependencies": {},
   "devDependencies": {
-    "typescript": "^5.0.0"
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "typescript": "^5.7.0"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/affectively-ai/aeon-flags.git"
+  "peerDependencies": {
+    "@affectively/aeon-flux": "^1.9.0"
   },
-  "keywords": [
-    "aeon",
-    "flags",
-    "feature-flags",
-    "config"
-  ],
-  "author": "Edgework DAO",
-  "license": "UNLICENSED"
+  "peerDependenciesMeta": {
+    "@affectively/aeon-flux": {
+      "optional": true
+    }
+  },
+  "license": "MIT",
+  "author": "Edgework DAO"
 }
