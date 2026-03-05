@@ -1,0 +1,35 @@
+{
+  "name": "@affectively/aeon-flags",
+  "version": "1.0.0",
+  "description": "Feature flag and configuration management for the Aeon ecosystem.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/affectively-ai/aeon-flags.git"
+  },
+  "keywords": [
+    "aeon",
+    "flags",
+    "feature-flags",
+    "config"
+  ],
+  "author": "Edgework DAO",
+  "license": "UNLICENSED"
+}
