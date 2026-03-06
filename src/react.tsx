@@ -109,7 +109,7 @@ export function Guard({
   flag,
   fallback = null,
   children,
-}: GuardProps): React.ReactNode {
+}: GuardProps): React.JSX.Element | null {
   const isEnabled = useFlag(flag);
   return isEnabled ? <>{children}</> : <>{fallback}</>;
 }
