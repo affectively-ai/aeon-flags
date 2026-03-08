@@ -10,8 +10,18 @@ export function parseUCAN(tokenStr: string): UCANToken | null {
     const parts = tokenStr.split('.');
     if (parts.length !== 3) return null;
 
-    const header = JSON.parse(atob(parts[0]));
-    const payload = JSON.parse(atob(parts[1]));
+    const header = JSON.parse(decodeBase64(parts[0]));
+    const payload = JSON.parse(decodeBase64(parts[1]));
+
+    // Check expiration
+    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+      return null;
+    }
+
+    // Check not-before
+    if (payload.nbf && payload.nbf > Math.floor(Date.now() / 1000)) {
+      return null;
+    }
 
     return {
       header,
@@ -63,8 +73,8 @@ export function getFlagCapability(
   return null;
 }
 
-// Fallback basic base64 decoder for environments without full Buffer/atob
-function atob(b64: string): string {
+// Base64 decoder with fallback for Node.js environments
+function decodeBase64(b64: string): string {
   if (typeof globalThis.atob === 'function') {
     return globalThis.atob(b64);
   }
