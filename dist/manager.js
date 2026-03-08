@@ -16,6 +16,12 @@ export class FlagManager {
             this.listeners.delete(listener);
         };
     }
+    /**
+     * Remove all listeners and clean up resources.
+     */
+    destroy() {
+        this.listeners.clear();
+    }
     notify() {
         for (const listener of this.listeners) {
             listener();
@@ -38,6 +44,9 @@ export class FlagManager {
      * Evaluates if a feature flag is enabled for the given context/UCAN.
      */
     evaluate(flagId, options = {}) {
+        if (!flagId) {
+            return options.defaultValue ?? false;
+        }
         const flag = this.flags.get(flagId);
         if (!flag) {
             return options.defaultValue ?? false;
@@ -71,27 +80,40 @@ export class FlagManager {
                         return false;
                     }
                 }
-                // Custom matches function
-                if (rule.matches && !rule.matches(userContext)) {
-                    return false;
+                // Custom matches function - wrap in try-catch to prevent crashes
+                if (rule.matches) {
+                    try {
+                        if (!rule.matches(userContext)) {
+                            return false;
+                        }
+                    }
+                    catch {
+                        // If the custom match function throws, treat as non-match
+                        return false;
+                    }
                 }
                 // Percentage Rollout (Deterministic based on userId, or random if no user)
                 if (rule.rolloutPercentage !== undefined) {
-                    if (rule.rolloutPercentage <= 0)
+                    // Validate rolloutPercentage is a finite number
+                    if (!Number.isFinite(rule.rolloutPercentage))
                         return false;
-                    if (rule.rolloutPercentage >= 100)
+                    // Clamp to 0-100 range
+                    const percentage = Math.max(0, Math.min(100, rule.rolloutPercentage));
+                    if (percentage <= 0)
+                        return false;
+                    if (percentage >= 100)
                         continue;
                     if (userContext.userId) {
                         // Hash userId for deterministic rollout
                         const hash = this.simpleHash(`${flagId}:${userContext.userId}`);
                         const percent = (hash % 100) + 1; // 1 to 100
-                        if (percent > rule.rolloutPercentage) {
+                        if (percent > percentage) {
                             return false;
                         }
                     }
                     else {
                         // Random fallback if no userId
-                        if (Math.random() * 100 > rule.rolloutPercentage) {
+                        if (Math.random() * 100 > percentage) {
                             return false;
                         }
                     }
@@ -115,9 +137,8 @@ export class FlagManager {
         let hash = 0;
         for (let i = 0; i < str.length; i++) {
             const char = str.charCodeAt(i);
-            hash = (hash << 5) - hash + char;
-            hash = hash & hash; // Convert to 32bit integer
+            hash = ((hash << 5) - hash + char) | 0;
         }
-        return Math.abs(hash);
+        return hash >>> 0; // Unsigned 32-bit
     }
 }

@@ -48,5 +48,5 @@ export interface GuardProps {
  *   <NewProDashboard />
  * </Guard>
  */
-export declare function Guard({ flag, fallback, children, }: GuardProps): React.ReactNode;
+export declare function Guard({ flag, fallback, children, }: GuardProps): React.JSX.Element | null;
 export {};

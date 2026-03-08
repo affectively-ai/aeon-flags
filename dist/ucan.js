@@ -8,15 +8,23 @@ export function parseUCAN(tokenStr) {
         const parts = tokenStr.split('.');
         if (parts.length !== 3)
             return null;
-        const header = JSON.parse(atob(parts[0]));
-        const payload = JSON.parse(atob(parts[1]));
+        const header = JSON.parse(decodeBase64(parts[0]));
+        const payload = JSON.parse(decodeBase64(parts[1]));
+        // Check expiration
+        if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+            return null;
+        }
+        // Check not-before
+        if (payload.nbf && payload.nbf > Math.floor(Date.now() / 1000)) {
+            return null;
+        }
         return {
             header,
             payload,
             signature: parts[2],
         };
     }
-    catch (e) {
+    catch {
         return null;
     }
 }
@@ -30,10 +38,10 @@ export function extractContextFromUCAN(token) {
     // Look for facts that define tier or other attributes
     if (token.payload.fct && Array.isArray(token.payload.fct)) {
         for (const fact of token.payload.fct) {
-            if (fact.tier) {
+            if (fact.tier && typeof fact.tier === 'string') {
                 context.tier = fact.tier;
             }
-            if (fact.attributes) {
+            if (fact.attributes && typeof fact.attributes === 'object' && fact.attributes !== null) {
                 context.attributes = { ...context.attributes, ...fact.attributes };
             }
         }
@@ -44,7 +52,13 @@ export function extractContextFromUCAN(token) {
  * Checks if the UCAN token grants explicit capability to evaluate or force a flag.
  */
 export function getFlagCapability(token, flagId) {
+    // Validate att is an array before iterating
+    if (!Array.isArray(token.payload.att)) {
+        return null;
+    }
     for (const cap of token.payload.att) {
+        if (!cap || typeof cap !== 'object')
+            continue;
         if (cap.with === `flag:${flagId}` || cap.with === 'app:flags') {
             if (cap.can === 'force_enable')
                 return 'force_enable';
@@ -56,11 +70,18 @@ export function getFlagCapability(token, flagId) {
     }
     return null;
 }
-// Fallback basic base64 decoder for environments without full Buffer/atob
-function atob(b64) {
+// Base64 decoder with fallback for Node.js environments
+function decodeBase64(b64) {
     if (typeof globalThis.atob === 'function') {
         return globalThis.atob(b64);
     }
-    // @ts-ignore fallback for Node.js environments
-    return Buffer.from(b64, 'base64').toString('utf8');
+    // Fallback for Node.js environments where atob may not be available.
+    // Use dynamic access to avoid requiring @types/node.
+    const g = globalThis;
+    if (g['Buffer'] && typeof g['Buffer'].from === 'function') {
+        return g['Buffer']
+            .from(b64, 'base64')
+            .toString('utf8');
+    }
+    return b64;
 }

@@ -3,10 +3,11 @@
  * Allows using feature flags as `<ESI.Flag name="foo">` in Aeon Flux environments,
  * evaluating rendering based on UCAN context without main-thread hydration.
  */
+import type { ReactNode } from 'react';
 export interface ESIFlagProps {
     name: string;
     fallback?: boolean;
-    children: any;
+    children: ReactNode;
 }
 /**
  * A theoretical helper representing how ESI might inject flag values into the DOM.

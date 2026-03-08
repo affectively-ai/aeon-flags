@@ -7,6 +7,10 @@ export declare class FlagManager {
      * Subscribe to flag changes. Returns an unsubscribe function.
      */
     subscribe(listener: () => void): () => void;
+    /**
+     * Remove all listeners and clean up resources.
+     */
+    destroy(): void;
     private notify;
     /**
      * Register or update a feature flag.
