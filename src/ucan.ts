@@ -28,7 +28,7 @@ export function parseUCAN(tokenStr: string): UCANToken | null {
       payload,
       signature: parts[2],
     };
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -44,10 +44,10 @@ export function extractContextFromUCAN(token: UCANToken): UserContext {
   // Look for facts that define tier or other attributes
   if (token.payload.fct && Array.isArray(token.payload.fct)) {
     for (const fact of token.payload.fct) {
-      if (fact.tier) {
+      if (fact.tier && typeof fact.tier === 'string') {
         context.tier = fact.tier;
       }
-      if (fact.attributes) {
+      if (fact.attributes && typeof fact.attributes === 'object' && fact.attributes !== null) {
         context.attributes = { ...context.attributes, ...fact.attributes };
       }
     }
@@ -63,7 +63,13 @@ export function getFlagCapability(
   token: UCANToken,
   flagId: string
 ): 'force_enable' | 'force_disable' | 'evaluate' | null {
+  // Validate att is an array before iterating
+  if (!Array.isArray(token.payload.att)) {
+    return null;
+  }
+
   for (const cap of token.payload.att) {
+    if (!cap || typeof cap !== 'object') continue;
     if (cap.with === `flag:${flagId}` || cap.with === 'app:flags') {
       if (cap.can === 'force_enable') return 'force_enable';
       if (cap.can === 'force_disable') return 'force_disable';
@@ -78,6 +84,13 @@ function decodeBase64(b64: string): string {
   if (typeof globalThis.atob === 'function') {
     return globalThis.atob(b64);
   }
-  // @ts-ignore fallback for Node.js environments
-  return Buffer.from(b64, 'base64').toString('utf8');
+  // Fallback for Node.js environments where atob may not be available.
+  // Use dynamic access to avoid requiring @types/node.
+  const g = globalThis as Record<string, unknown>;
+  if (g['Buffer'] && typeof (g['Buffer'] as { from?: unknown }).from === 'function') {
+    return (g['Buffer'] as { from: (s: string, e: string) => { toString: (e: string) => string } })
+      .from(b64, 'base64')
+      .toString('utf8');
+  }
+  return b64;
 }

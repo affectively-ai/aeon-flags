@@ -25,6 +25,13 @@ export class FlagManager {
     };
   }
 
+  /**
+   * Remove all listeners and clean up resources.
+   */
+  public destroy(): void {
+    this.listeners.clear();
+  }
+
   private notify() {
     for (const listener of this.listeners) {
       listener();
@@ -50,6 +57,10 @@ export class FlagManager {
    * Evaluates if a feature flag is enabled for the given context/UCAN.
    */
   public evaluate(flagId: string, options: EvaluateOptions = {}): boolean {
+    if (!flagId) {
+      return options.defaultValue ?? false;
+    }
+
     const flag = this.flags.get(flagId);
     if (!flag) {
       return options.defaultValue ?? false;
@@ -87,26 +98,39 @@ export class FlagManager {
           }
         }
 
-        // Custom matches function
-        if (rule.matches && !rule.matches(userContext)) {
-          return false;
+        // Custom matches function - wrap in try-catch to prevent crashes
+        if (rule.matches) {
+          try {
+            if (!rule.matches(userContext)) {
+              return false;
+            }
+          } catch {
+            // If the custom match function throws, treat as non-match
+            return false;
+          }
         }
 
         // Percentage Rollout (Deterministic based on userId, or random if no user)
         if (rule.rolloutPercentage !== undefined) {
-          if (rule.rolloutPercentage <= 0) return false;
-          if (rule.rolloutPercentage >= 100) continue;
+          // Validate rolloutPercentage is a finite number
+          if (!Number.isFinite(rule.rolloutPercentage)) return false;
+
+          // Clamp to 0-100 range
+          const percentage = Math.max(0, Math.min(100, rule.rolloutPercentage));
+
+          if (percentage <= 0) return false;
+          if (percentage >= 100) continue;
 
           if (userContext.userId) {
             // Hash userId for deterministic rollout
             const hash = this.simpleHash(`${flagId}:${userContext.userId}`);
             const percent = (hash % 100) + 1; // 1 to 100
-            if (percent > rule.rolloutPercentage) {
+            if (percent > percentage) {
               return false;
             }
           } else {
             // Random fallback if no userId
-            if (Math.random() * 100 > rule.rolloutPercentage) {
+            if (Math.random() * 100 > percentage) {
               return false;
             }
           }
