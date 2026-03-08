@@ -29,7 +29,7 @@ describe('UCAN Utils', () => {
     const tokenStr = createToken({
       iss: 'user-1',
       aud: 'app',
-      exp: 123,
+      exp: Math.floor(Date.now() / 1000) + 3600,
       att: [],
       fct: [{ tier: 'enterprise' }, { attributes: { beta: true } }],
     });
@@ -46,7 +46,7 @@ describe('UCAN Utils', () => {
     const tokenStr = createToken({
       iss: 'user-2',
       aud: 'app',
-      exp: 123,
+      exp: Math.floor(Date.now() / 1000) + 3600,
       att: [],
     });
 
@@ -62,7 +62,7 @@ describe('UCAN Utils', () => {
     const tokenStr = createToken({
       iss: 'user-1',
       aud: 'app',
-      exp: 123,
+      exp: Math.floor(Date.now() / 1000) + 3600,
       att: [
         { with: 'flag:test-flag', can: 'force_enable' },
         { with: 'flag:other', can: 'force_disable' },
@@ -80,13 +80,36 @@ describe('UCAN Utils', () => {
     const tokenStr = createToken({
       iss: 'user-1',
       aud: 'app',
-      exp: 123,
+      exp: Math.floor(Date.now() / 1000) + 3600,
       att: [{ with: 'app:flags', can: '*' }],
     });
 
     const token = parseUCAN(tokenStr)!;
 
     expect(getFlagCapability(token, 'any-flag')).toBe('evaluate');
+  });
+
+  it('should reject expired UCAN tokens', () => {
+    const tokenStr = createToken({
+      iss: 'user-1',
+      aud: 'app',
+      exp: Math.floor(Date.now() / 1000) - 3600, // 1 hour ago
+      att: [],
+    });
+
+    expect(parseUCAN(tokenStr)).toBeNull();
+  });
+
+  it('should reject not-yet-valid UCAN tokens', () => {
+    const tokenStr = createToken({
+      iss: 'user-1',
+      aud: 'app',
+      exp: Math.floor(Date.now() / 1000) + 7200,
+      nbf: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
+      att: [],
+    });
+
+    expect(parseUCAN(tokenStr)).toBeNull();
   });
 
   it('should fallback to Buffer when atob is undefined', () => {

@@ -4,10 +4,20 @@
  * evaluating rendering based on UCAN context without main-thread hydration.
  */
 
+import type { ReactNode } from 'react';
+
 export interface ESIFlagProps {
   name: string;
   fallback?: boolean;
-  children: any;
+  children: ReactNode;
+}
+
+/**
+ * Sanitize a flag name for safe interpolation in ESI tags.
+ * Removes characters that could break ESI tag parsing or inject malicious content.
+ */
+function sanitizeESIFlagName(name: string): string {
+  return name.replace(/[^a-zA-Z0-9_-]/g, '');
 }
 
 /**
@@ -19,10 +29,12 @@ export function generateESIFlagTag(
   content: string,
   fallbackContent: string = ''
 ): string {
+  const safeName = sanitizeESIFlagName(name);
+
   // ESI processors at the edge will evaluate the variable "flag_{name}" defined by FlagManager.generateESIVariables()
   return `
     <esi:choose>
-      <esi:when test="$(flag_${name}) == '1'">
+      <esi:when test="$(flag_${safeName}) == '1'">
         ${content}
       </esi:when>
       <esi:otherwise>

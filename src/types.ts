@@ -1,5 +1,11 @@
+export interface UCANHeader {
+  alg: string;
+  typ: string;
+  [key: string]: unknown;
+}
+
 export interface UCANToken {
-  header: any;
+  header: UCANHeader;
   payload: UCANPayload;
   signature: string;
 }
@@ -10,20 +16,20 @@ export interface UCANPayload {
   exp: number;
   nbf?: number;
   att: UCANCapability[];
-  fct?: Record<string, any>[];
+  fct?: Record<string, unknown>[];
   prf?: string[];
 }
 
 export interface UCANCapability {
   with: string; // e.g. "flag:my-feature" or "app:flags"
   can: string; // e.g. "evaluate", "read", "*"
-  nb?: Record<string, any>;
+  nb?: Record<string, unknown>;
 }
 
 export interface UserContext {
   userId?: string;
   tier?: string;
-  attributes?: Record<string, any>;
+  attributes?: Record<string, unknown>;
 }
 
 export interface FlagRule {
