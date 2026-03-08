@@ -5,3 +5,4 @@ export {
   getFlagCapability,
 } from './ucan.js';
 export type * from './types.js';
+export { ICE_FLAG_IDS, createIceFlags, registerIceFlags } from './ice-policies.js';
