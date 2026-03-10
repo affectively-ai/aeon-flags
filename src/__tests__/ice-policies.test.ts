@@ -1,4 +1,8 @@
-import { ICE_FLAG_IDS, createIceFlags, registerIceFlags } from '../ice-policies';
+import {
+  ICE_FLAG_IDS,
+  createIceFlags,
+  registerIceFlags,
+} from '../ice-policies';
 import { FlagManager } from '../manager';
 
 describe('ICE Policy Flags', () => {

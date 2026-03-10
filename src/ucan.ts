@@ -47,7 +47,11 @@ export function extractContextFromUCAN(token: UCANToken): UserContext {
       if (fact.tier && typeof fact.tier === 'string') {
         context.tier = fact.tier;
       }
-      if (fact.attributes && typeof fact.attributes === 'object' && fact.attributes !== null) {
+      if (
+        fact.attributes &&
+        typeof fact.attributes === 'object' &&
+        fact.attributes !== null
+      ) {
         context.attributes = { ...context.attributes, ...fact.attributes };
       }
     }
@@ -87,8 +91,15 @@ function decodeBase64(b64: string): string {
   // Fallback for Node.js environments where atob may not be available.
   // Use dynamic access to avoid requiring @types/node.
   const g = globalThis as Record<string, unknown>;
-  if (g['Buffer'] && typeof (g['Buffer'] as { from?: unknown }).from === 'function') {
-    return (g['Buffer'] as { from: (s: string, e: string) => { toString: (e: string) => string } })
+  if (
+    g['Buffer'] &&
+    typeof (g['Buffer'] as { from?: unknown }).from === 'function'
+  ) {
+    return (
+      g['Buffer'] as {
+        from: (s: string, e: string) => { toString: (e: string) => string };
+      }
+    )
       .from(b64, 'base64')
       .toString('utf8');
   }

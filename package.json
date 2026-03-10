@@ -1,6 +1,6 @@
 {
   "name": "@affectively/aeon-flags",
-  "version": "1.0.1",
+  "version": "5.0.0",
   "description": "UCAN-powered Feature Flags with optional Edge Side Inference (ESI) cache and Tier gating. A lightweight alternative to CloudBees and LaunchDarkly.",
   "type": "module",
   "main": "dist/index.js",
@@ -43,5 +43,5 @@
     }
   },
   "license": "MIT",
-  "author": "Edgework DAO"
+  "author": "Taylor William Buley (https://buley.fyi)"
 }
