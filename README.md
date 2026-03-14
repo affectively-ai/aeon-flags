@@ -1,74 +1,64 @@
 # @affectively/aeon-flags
 
-**The Goodchild Daemon: Feature Entitlement at the Edge**
+`@affectively/aeon-flags` is a local feature-flag evaluator with optional UCAN-aware gating, React helpers, and edge-friendly output.
 
-Goodchild is a localized, UCAN-enforced feature gating and routing daemon. It replaces centralized, polling-based feature flag SaaS (like LaunchDarkly or CloudBees) with deterministic, edge-evaluated cryptographic entitlements. Say goodbye to expensive $10k+ yearly enterprise subscriptions.
+The project nickname is **Goodchild**, but the product story is simple: evaluate flags close to the app, keep rollout logic deterministic, and make it easy to hide or show UI without waiting on a hosted flag service round-trip.
 
-## The Origin and the Irony
+## Why People May Like It
 
-The name is a direct reference to Trevor Goodchild, the brilliant, autocratic ruler of the walled city of Bregna in *Aeon Flux*. In the lore, Goodchild is obsessed with absolute control, artificial borders, and centralized authority. He is the ultimate gatekeeper, deciding who gets access to what, and under what conditions.
+- flags can be evaluated locally instead of waiting on a remote check,
+- rules support tiers, rollout percentages, and custom matching,
+- UCAN tokens can contribute context or explicitly force a flag on or off,
+- the React package gives you `GoodchildProvider`, `useFlag`, and `Guard`,
+- and the ESI helpers can turn flag decisions into edge-rendered HTML branches.
 
-In the context of the Aeon Shell architecture, naming our feature flag service Goodchild is an exercise in cyberpunk irony.
+That is the package's strongest fair brag: it is small, but it already covers plain TypeScript use, React use, and edge-rendered use.
 
-Traditional feature flag services act exactly like the original Trevor Goodchild: they are centralized, rent-seeking authorities sitting in a distant tower, constantly spying on the edge via telemetry, and phoning home to ask permission for every state change. By naming our decentralized, user-sovereign entitlement service "Goodchild," we are domesticating the tyrant. We have stripped him of his centralized power, severed his network connection, and reduced him to a blind, local enforcer of the user's cryptographic will.
-
-## Architectural Semantics
-
-The Goodchild daemon perfectly mirrors the strictness of its namesake, but applies that strictness locally. It operates under a zero-trust, fail-closed paradigm.
-
-- **No Central Authority:** Goodchild does not poll a remote server to ask if a feature should be enabled. It lives at the edge.
-- **Cryptographic Law:** Goodchild only responds to verified UCANs. If the token lacks the exact capability (`flag:<flag-name>`), Goodchild mathematically rejects the execution path.
-- **Stateless Enforcement:** Goodchild cares about the signature, the audience, and the TTL. It does not track user identities or report telemetry back to a mothership.
-- **The Inverted Power Dynamic:** The user (or the capability granter) holds the key. Goodchild is merely the lock.
-
-Combined with **Edge Side Inference (ESI)**, `goodchild` brings your evaluations to the edge, dropping your CLS (Cumulative Layout Shift) to zero while executing in sub-milliseconds without hydration delays.
-
-## Installation
+## Install
 
 ```bash
 bun add @affectively/aeon-flags
 ```
 
-## Code as Lore
+## Quick Start
 
-When a developer interacts with this service in the shell, the semantics carry the weight of the architecture. You aren't casually checking a remote boolean; you are demanding passage through a cryptographically sealed border.
-
-Instead of an ambient `if (flags.isFeatureXEnabled)`, the execution path feels authoritative:
-
-```typescript
+```ts
 import { FlagManager } from '@affectively/aeon-flags';
 
-const Goodchild = new FlagManager([
+const flags = new FlagManager([
   {
     id: 'experimental-ui',
     enabled: true,
     rules: [
-      // Only show to premium and enterprise users
       { tiers: ['premium', 'enterprise'] },
-      // 50% rollout among those users
-      { rolloutPercentage: 50 }
-    ]
-  }
+      { rolloutPercentage: 50 },
+    ],
+  },
 ]);
 
-// If the delegation chain is valid, the gate opens instantly with zero network latency.
-// If it fails, Goodchild ruthlessly shunts the execution back to the baseline path.
-const isEnabled = Goodchild.evaluate('experimental-ui', {
-  ucan: userUcanToken,
-  context: { userId: 'user-123', tier: 'premium' }
+const isEnabled = flags.evaluate('experimental-ui', {
+  context: { userId: 'user-123', tier: 'premium' },
 });
 ```
 
-### React & Aeon-Flux Easy Mode
+## What The Rules Can Do
 
-If you are using React or building inside the Aeon Flux ecosystem, Goodchild acts as a deterministic barrier, aggressively pruning nodes at render time before they even reach the DOM.
+- turn a flag on or off globally,
+- limit a flag to certain account tiers,
+- roll it out to a percentage of users,
+- run custom match logic against local context,
+- and accept UCAN-derived context when you have it.
+
+If a UCAN includes an explicit capability for a flag, the manager can force that flag on or off immediately.
+
+## React Helpers
 
 ```tsx
 import { GoodchildProvider, Guard } from '@affectively/aeon-flags/react';
 
 function App() {
   return (
-    <GoodchildProvider manager={Goodchild} context={{ tier: 'free' }}>
+    <GoodchildProvider manager={flags} context={{ tier: 'free' }}>
       <Dashboard />
     </GoodchildProvider>
   );
@@ -78,8 +68,6 @@ function Dashboard() {
   return (
     <main>
       <h1>Dashboard</h1>
-      
-      {/* If the flag evaluates to false, this node is destroyed at render time */}
       <Guard flag="experimental-ui" fallback={<p>Upgrade to Pro to see this feature</p>}>
         <ExperimentalProWidget />
       </Guard>
@@ -88,18 +76,36 @@ function Dashboard() {
 }
 ```
 
-### Edge Side Inference (ESI) Integration
+That is one of the nicest things about the package: you can keep the flag logic out of your rendering code and let `Guard` handle the decision cleanly.
 
-When running in Cloudflare Workers using the Aeon Flux architecture, flags can be mapped to ESI variables that instruct the edge HTML rewriter to dynamically include/exclude segments of your DOM before the browser even downloads it:
+## Edge And ESI
 
-```typescript
-// On the Worker
-const esiVars = Goodchild.generateESIVariables({ ucan: requestUcan });
-// esiVars = { "flag_experimental-ui": "1", "flag_ai-chat": "0" }
+The manager can generate a simple variable map for edge rendering:
+
+```ts
+const esiVars = flags.generateESIVariables({
+  context: { userId: 'user-123', tier: 'premium' },
+});
 ```
 
-You can then use the provided tools to generate native ESI tags.
+And the ESI helper can turn that into a branchable tag:
 
-## License
+```ts
+import { generateESIFlagTag } from '@affectively/aeon-flags/esi';
 
-MIT
+const html = generateESIFlagTag(
+  'experimental-ui',
+  '<div>Enabled branch</div>',
+  '<div>Fallback branch</div>'
+);
+```
+
+## Export Surface
+
+- `@affectively/aeon-flags`: `FlagManager`, UCAN helpers, core types, and canned ice-policy helpers
+- `@affectively/aeon-flags/react`: provider, hooks, and `Guard`
+- `@affectively/aeon-flags/esi`: ESI tag helper
+
+## Why This README Is Grounded
+
+This package does not need lore to justify itself. The strongest fair brag is that it already gives you a compact, understandable flag system with local evaluation, UCAN-aware rules, React guards, and edge-friendly output.
